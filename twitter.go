@@ -40,6 +40,9 @@
 package anaconda
 
 import (
+	"appengine"
+	"appengine/urlfetch"
+
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -90,13 +93,14 @@ const DEFAULT_CAPACITY = 5
 
 //NewTwitterApi takes an user-specific access token and secret and returns a TwitterApi struct for that user.
 //The TwitterApi struct can be used for accessing any of the endpoints available.
-func NewTwitterApi(access_token string, access_token_secret string) *TwitterApi {
+func NewTwitterApi(c appengine.Context, access_token string, access_token_secret string) *TwitterApi {
+	client := urlfetch.Client(c)
 	//TODO figure out how much to buffer this channel
 	//A non-buffered channel will cause blocking when multiple queries are made at the same time
 	queue := make(chan query)
-	c := &TwitterApi{&oauth.Credentials{Token: access_token, Secret: access_token_secret}, queue, nil, false, http.DefaultClient}
-	go c.throttledQuery()
-	return c
+	api := &TwitterApi{&oauth.Credentials{Token: access_token, Secret: access_token_secret}, queue, nil, false, client}
+	go api.throttledQuery()
+	return api
 }
 
 //SetConsumerKey will set the application-specific consumer_key used in the initial OAuth process
